@@ -1,3 +1,5 @@
 /target
 bruh_data
 .vscode
+user/*
+!user/.keep
