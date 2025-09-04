@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Bruh :: Revisions - {{ script_name }}</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <script src="js/umbrella.min.js"></script>
+        <style>
+            .revision-current {
+                background-color: #2d5aa0 !important;
+                color: white !important;
+            }
+            .revision-description {
+                font-style: italic;
+                color: #888;
+                margin-top: 4px;
+            }
+            .revision-timestamp {
+                font-size: 0.8rem;
+                color: #666;
+            }
+        </style>
+        <script>
+            let currentScriptName = "{{ script_name }}";
+
+            function goback() {
+                window.location.href = "{{ protocol }}://{{ host }}/";
+            }
+
+            function edit_script() {
+                window.location.href = "{{ protocol }}://{{ host }}/edit?script=" + currentScriptName;
+            }
+
+            async function loadRevisions() {
+                try {
+                    const response = await fetch(`/api/script-revisions/${currentScriptName}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const revisions = await response.json();
+                    displayRevisions(revisions);
+                } catch (error) {
+                    console.error('Failed to load revisions:', error);
+                    document.getElementById('revisions-list').innerHTML =
+                        '<div class="notification is-danger">Failed to load revisions</div>';
+                }
+            }
+
+            function displayRevisions(revisions) {
+                const container = document.getElementById('revisions-list');
+
+                if (revisions.length === 0) {
+                    container.innerHTML = '<div class="notification is-info">No revisions found</div>';
+                    return;
+                }
+
+                let html = '<div class="table-container"><table class="table"><thead><tr><th>Rev</th><th>Description</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+
+                revisions.forEach(revision => {
+                    const isCurrent = revision.is_current;
+                    const rowClass = isCurrent ? 'revision-current' : '';
+                    const statusText = isCurrent ? 'Current' : '';
+                    const statusClass = isCurrent ? 'is-success' : 'is-light';
+
+                    const description = revision.description || 'No description';
+                    const createdDate = new Date(revision.created_at).toLocaleString();
+
+                    html += `
+                        <tr class="${rowClass}">
+                            <td><strong>${revision.revision_number}</strong></td>
+                            <td>
+                                <div>${description}</div>
+                                <div class="revision-timestamp">${createdDate}</div>
+                            </td>
+                            <td>${createdDate}</td>
+                            <td><span class="tag ${statusClass}">${statusText}</span></td>
+                            <td>
+                                <div class="buttons are-small">
+                                    ${!isCurrent ? `<button class="button is-primary" onclick="switchToRevision(${revision.revision_number})">Switch To</button>` : ''}
+                                    <button class="button is-info" onclick="viewRevision(${revision.revision_number})">View</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            }
+
+            async function switchToRevision(revisionNumber) {
+                if (!confirm(`Are you sure you want to switch to revision ${revisionNumber}? This will make it the active version.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/scripts/${currentScriptName}/switch-revision/${revisionNumber}`, {
+                        method: 'POST'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.success) {
+                        alert('Successfully switched to revision ' + revisionNumber);
+                        loadRevisions(); // Refresh the list
+                    } else {
+                        alert('Failed to switch revision');
+                    }
+                } catch (error) {
+                    console.error('Failed to switch revision:', error);
+                    alert('Failed to switch revision: ' + error.message);
+                }
+            }
+
+            async function viewRevision(revisionNumber) {
+                try {
+                    const response = await fetch(`/api/scripts/${currentScriptName}/revision/${revisionNumber}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    // Open in a new window or show in a modal
+                    const newWindow = window.open('', '_blank');
+                    newWindow.document.write(`
+                        <html><head><title>Revision ${revisionNumber} - ${currentScriptName}</title></head>
+                        <body><pre>${result.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body>
+                        </html>
+                    `);
+                    newWindow.document.close();
+                } catch (error) {
+                    console.error('Failed to load revision:', error);
+                    alert('Failed to load revision: ' + error.message);
+                }
+            }
+
+            // Load revisions when page loads
+            document.addEventListener('DOMContentLoaded', loadRevisions);
+        </script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="new_script()" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Channels</div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">{{ channels|length }}</span>
+                        </div>
+                    </div>
+                    {% if channels %}
+                    <ul class="nav-menu">
+                        {% for channel in channels %}
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" title="Channel: {{ channel.name }}">
+                                <i>📺</i>
+                                {{ channel.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Database</div>
+                    <div class="quick-stats">
+                        {% set total_rows = namespace(total=0) %}
+                        {% for table in sqlite_tables %}
+                            {% set total_rows.total = total_rows.total + table.row_count %}
+                        {% endfor %}
+                        <div class="stat-item">
+                            <span class="stat-label">Tables</span>
+                            <span class="stat-value">{{ sqlite_tables|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Rows</span>
+                            <span class="stat-value">{{ total_rows.total }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function new_script() {
+                        let name = prompt("Script name:");
+                        if (name != null) {
+                            window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                        }
+                    }
+                </script>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <section class="content-section">
+                    <div class="content-header">
+                        <h2 class="content-title">Revisions: {{ script_name }}</h2>
+                        <div class="action-buttons">
+                            <button class="button is-primary" onclick="edit_script()">
+                                <i>📝</i>
+                                Edit Script
+                            </button>
+                            <button class="button" onclick="goback()">
+                                <i>⬅️</i>
+                                Back
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="revisions-list">
+                        <div class="notification is-info">Loading revisions...</div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </body>
+</html>

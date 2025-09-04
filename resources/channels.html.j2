@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Bruh :: Channels</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <script src="js/umbrella.min.js"></script>
+        <style>
+            .channels-container {
+                max-width: none;
+                margin: 0;
+            }
+
+            .channels-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid #333;
+            }
+
+            .channels-title {
+                color: #ffffff;
+                margin: 0;
+                font-size: 1.8rem;
+                font-weight: 600;
+            }
+
+            .channels-section {
+                margin-bottom: 2rem;
+            }
+
+            .channels-table {
+                background-color: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .channels-table th {
+                background-color: #2a2a2a;
+                color: #ffffff;
+                border-color: #333;
+                padding: 1rem;
+                font-weight: 600;
+            }
+
+            .channels-table td {
+                border-color: #333;
+                padding: 1rem;
+                vertical-align: middle;
+            }
+
+            .channels-table tbody tr:nth-child(even) {
+                background-color: #1e1e1e;
+            }
+
+            .channels-table tbody tr:hover {
+                background-color: #252525;
+            }
+
+            .channel-name {
+                font-family: 'Courier New', monospace;
+                color: #00d1b2;
+                background-color: #1a1a1a;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                border: 1px solid #333;
+            }
+
+            .action-buttons {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .add-channel-form {
+                background-color: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+            }
+
+            .form-title {
+                color: #ffffff;
+                margin-bottom: 1.5rem;
+                font-size: 1.4rem;
+                font-weight: 600;
+            }
+
+            .form-group {
+                margin-bottom: 1rem;
+            }
+
+            .form-label {
+                display: block;
+                color: #ffffff;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+            }
+
+            .form-input {
+                width: 100%;
+                padding: 0.75rem;
+                background-color: #2a2a2a;
+                border: 1px solid #555;
+                border-radius: 4px;
+                color: #ffffff;
+                font-family: 'Courier New', monospace;
+            }
+
+            .form-input:focus {
+                outline: none;
+                border-color: #00d1b2;
+                box-shadow: 0 0 0 2px rgba(0, 209, 178, 0.2);
+            }
+
+            .form-input::placeholder {
+                color: #666;
+            }
+
+            .form-help {
+                color: #888;
+                font-size: 0.9rem;
+                margin-top: 0.25rem;
+            }
+
+            .form-actions {
+                display: flex;
+                gap: 1rem;
+                margin-top: 1.5rem;
+            }
+
+            .status-message {
+                padding: 1rem;
+                border-radius: 4px;
+                margin-bottom: 1rem;
+                font-weight: 500;
+            }
+
+            .status-success {
+                background-color: #1a472a;
+                border: 1px solid #2d7a44;
+                color: #48c774;
+            }
+
+            .status-error {
+                background-color: #4a1a1a;
+                border: 1px solid #7a2d2d;
+                color: #f14668;
+            }
+
+            .empty-state {
+                text-align: center;
+                color: #666;
+                padding: 3rem;
+                background-color: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 8px;
+            }
+
+            .empty-state-icon {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                opacity: 0.5;
+            }
+        </style>
+        <script>
+            function delete_channel(channel) {
+                if (confirm('Are you sure you want to remove the channel "' + channel + '"? This will stop the bot from joining this channel.')) {
+                    // Create a form and submit it
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ protocol }}://{{ host }}/channels/delete';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'name';
+                    input.value = channel;
+
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+
+            function add_channel() {
+                const input = document.getElementById('channel_name');
+                const name = input.value.trim();
+
+                if (name === '') {
+                    alert('Please enter a channel name');
+                    input.focus();
+                    return;
+                }
+
+                // Submit the form
+                document.getElementById('add_channel_form').submit();
+            }
+
+            function handle_keypress(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    add_channel();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="let name = prompt('Script name:'); if (name != null) { window.location.href = '{{ protocol }}://{{ host }}/new?script=' + name; }" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Database</div>
+                    <div class="quick-stats">
+                        {% set total_rows = namespace(total=0) %}
+                        {% for table in sqlite_tables %}
+                            {% set total_rows.total = total_rows.total + table.row_count %}
+                        {% endfor %}
+                        <div class="stat-item">
+                            <span class="stat-label">Tables</span>
+                            <span class="stat-value">{{ sqlite_tables|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Rows</span>
+                            <span class="stat-value">{{ total_rows.total }}</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="channels-container">
+                    <div class="channels-header">
+                        <h1 class="channels-title">Channel Management</h1>
+                    </div>
+
+                    {% if error_message %}
+                    <div class="status-message status-error">
+                        <strong>Error:</strong> {{ error_message }}
+                    </div>
+                    {% endif %}
+
+                    {% if success_message %}
+                    <div class="status-message status-success">
+                        <strong>Success:</strong> {{ success_message }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Add Channel Form -->
+                    <div class="channels-section">
+                        <div class="add-channel-form">
+                            <h2 class="form-title">Add New Channel</h2>
+                            <form id="add_channel_form" method="POST" action="{{ protocol }}://{{ host }}/channels">
+                                <div class="form-group">
+                                    <label for="channel_name" class="form-label">Channel Name</label>
+                                    <input
+                                        type="text"
+                                        id="channel_name"
+                                        name="name"
+                                        class="form-input"
+                                        placeholder="#channel_name or channel_name"
+                                        onkeypress="handle_keypress(event)"
+                                        required
+                                    >
+                                    <div class="form-help">
+                                        Enter the channel name (with or without the # prefix). The bot will join this channel on startup.
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" class="button is-primary" onclick="add_channel()">
+                                        <i>➕</i>
+                                        Add Channel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Channels List -->
+                    <div class="channels-section">
+                        <h2 class="form-title">Active Channels</h2>
+                        {% if channels %}
+                        <div class="channels-table">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Channel Name</th>
+                                        <th>Added</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for channel in channels %}
+                                    <tr>
+                                        <td>
+                                            <span class="channel-name">{{ channel.name }}</span>
+                                        </td>
+                                        <td>
+                                            {{ channel.created_at }}
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="button is-danger is-small" onclick="delete_channel('{{ channel.name }}')">
+                                                    <i>🗑️</i>
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📺</div>
+                            <h3>No channels configured</h3>
+                            <p>Add channels above to have your bot join them when it starts up.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </body>
+</html>

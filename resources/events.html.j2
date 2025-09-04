@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Bruh - Events</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <script src="js/umbrella.min.js"></script>
+        <style>
+            .event-item {
+                border-left: 4px solid #3273dc;
+                padding: 0.75rem;
+                margin-bottom: 0.5rem;
+                background-color: rgba(50, 115, 220, 0.1);
+                border-radius: 4px;
+            }
+            .event-item.chat-message {
+                border-left-color: #48c774;
+                background-color: rgba(72, 199, 116, 0.1);
+            }
+            .event-item.join {
+                border-left-color: #ffdd57;
+                background-color: rgba(255, 221, 87, 0.1);
+            }
+            .event-item.part {
+                border-left-color: #f14668;
+                background-color: rgba(241, 70, 104, 0.1);
+            }
+            .event-item.whisper {
+                border-left-color: #7957d5;
+                background-color: rgba(121, 87, 213, 0.1);
+            }
+            .event-item.notice {
+                border-left-color: #ff5722;
+                background-color: rgba(255, 87, 34, 0.1);
+            }
+            .event-timestamp {
+                font-size: 0.8em;
+                color: #ccc;
+                margin-bottom: 0.25rem;
+            }
+            .event-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.25rem;
+            }
+            .event-user {
+                font-weight: bold;
+                color: #4dabf7;
+            }
+            .event-channel {
+                font-size: 0.9em;
+                color: #ccc;
+                font-style: italic;
+            }
+            .event-message {
+                word-wrap: break-word;
+                margin-top: 0.25rem;
+                color: #e0e0e0;
+            }
+            .event-type {
+                font-size: 0.75em;
+                text-transform: uppercase;
+                font-weight: bold;
+                padding: 0.2rem 0.5rem;
+                border-radius: 3px;
+                background-color: #3273dc;
+                color: white;
+            }
+            .event-type.chat-message { background-color: #48c774; }
+            .event-type.join { background-color: #ffdd57; color: #333; }
+            .event-type.part { background-color: #f14668; }
+            .event-type.whisper { background-color: #7957d5; }
+            .event-type.notice { background-color: #ff5722; }
+            .events-container {
+                max-height: 70vh;
+                overflow-y: auto;
+                border: 1px solid #555;
+                border-radius: 4px;
+                padding: 1rem;
+                background-color: #2a2a2a;
+            }
+            .auto-scroll-checkbox {
+                margin-left: 1rem;
+            }
+            .connection-status-icon {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.85em;
+                font-weight: 500;
+                padding: 0.25rem 0.75rem;
+                border-radius: 12px;
+                transition: all 0.3s ease;
+            }
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                display: inline-block;
+                animation: pulse 2s infinite;
+            }
+            .status-text {
+                font-size: 0.8em;
+            }
+            .connection-status-icon.connecting {
+                background-color: rgba(255, 221, 87, 0.2);
+                color: #ffdd57;
+                border: 1px solid rgba(255, 221, 87, 0.3);
+            }
+            .connection-status-icon.connecting .status-dot {
+                background-color: #ffdd57;
+            }
+            .connection-status-icon.connected {
+                background-color: rgba(72, 199, 116, 0.2);
+                color: #48c774;
+                border: 1px solid rgba(72, 199, 116, 0.3);
+            }
+            .connection-status-icon.connected .status-dot {
+                background-color: #48c774;
+            }
+            .connection-status-icon.disconnected {
+                background-color: rgba(241, 70, 104, 0.2);
+                color: #f14668;
+                border: 1px solid rgba(241, 70, 104, 0.3);
+            }
+            .connection-status-icon.disconnected .status-dot {
+                background-color: #f14668;
+            }
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/events" class="nav-link{% if current_page == 'events' %} active{% endif %}">
+                            <i>📡</i>
+                            Events
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/chat" class="nav-link{% if current_page == 'chat' %} active{% endif %}">
+                            <i>💬</i>
+                            Chat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="new_script()" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Channels</div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">{{ channels|length }}</span>
+                        </div>
+                    </div>
+                    {% if channels %}
+                    <ul class="nav-menu">
+                        {% for channel in channels %}
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" title="Channel: {{ channel.name }}">
+                                <i>📺</i>
+                                {{ channel.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <script>
+                    function new_script() {
+                        let name = prompt("Script name:");
+                        if (name != null) {
+                            window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                        }
+                    }
+                </script>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Events Section -->
+                <section class="content-section">
+                    <div class="content-header" style="position: relative;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+                            <div class="connection-status-icon connecting" id="connectionStatus">
+                                <span class="status-dot"></span>
+                                <span class="status-text">Connecting...</span>
+                            </div>
+                            <h2 class="content-title" style="margin: 0;">Live Events</h2>
+                        </div>
+                        <div class="action-buttons">
+                            <label class="checkbox auto-scroll-checkbox">
+                                <input type="checkbox" id="autoScroll" checked>
+                                Auto-scroll
+                            </label>
+                            <button class="button is-info" onclick="clearEvents()">
+                                <i>🗑️</i>
+                                Clear Events
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="events-container" id="eventsContainer">
+                        {% for event in events %}
+                        <div class="event-item {{ event.event_type|replace('_', '-') }}" data-event-id="{{ event.id }}">
+                            <div class="event-timestamp">{{ event.timestamp }}</div>
+                            <div class="event-header">
+                                <div>
+                                    <span class="event-user">{{ event.user or "System" }}</span>
+                                    {% if event.channel %}
+                                    <span class="event-channel">in {{ event.channel }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="event-type {{ event.event_type|replace('_', '-') }}">
+                                    {{ event.event_type|replace('_', ' ')|title }}
+                                </span>
+                            </div>
+                            {% if event.message %}
+                            <div class="event-message">{{ event.message }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <script>
+            let eventsContainer = document.getElementById('eventsContainer');
+            let autoScrollCheckbox = document.getElementById('autoScroll');
+            let connectionStatus = document.getElementById('connectionStatus');
+            let websocket = null;
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 5;
+            const reconnectDelay = 1000;
+
+            function connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws/events`;
+
+                const statusText = connectionStatus.querySelector('.status-text');
+                statusText.textContent = 'Connecting...';
+                connectionStatus.className = 'connection-status-icon connecting';
+
+                websocket = new WebSocket(wsUrl);
+
+                websocket.onopen = function(event) {
+                    console.log('WebSocket connected');
+                    const statusText = connectionStatus.querySelector('.status-text');
+                    statusText.textContent = 'Connected';
+                    connectionStatus.className = 'connection-status-icon connected';
+                    reconnectAttempts = 0;
+                };
+
+                websocket.onmessage = function(event) {
+                    try {
+                        const twitchEvent = JSON.parse(event.data);
+                        addEvent(twitchEvent);
+                    } catch (e) {
+                        console.error('Failed to parse event:', e);
+                    }
+                };
+
+                websocket.onclose = function(event) {
+                    console.log('WebSocket disconnected');
+                    const statusText = connectionStatus.querySelector('.status-text');
+                    statusText.textContent = 'Disconnected';
+                    connectionStatus.className = 'connection-status-icon disconnected';
+
+                    // Attempt to reconnect
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts);
+                    }
+                };
+
+                websocket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+            }
+
+            function addEvent(event) {
+                const eventElement = createEventElement(event);
+                eventsContainer.appendChild(eventElement);
+
+                // Auto-scroll if enabled
+                if (autoScrollCheckbox.checked) {
+                    eventElement.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                // Keep only the most recent events to prevent memory issues
+                const maxEvents = 100;
+                while (eventsContainer.children.length > maxEvents) {
+                    eventsContainer.removeChild(eventsContainer.firstChild);
+                }
+            }
+
+            function createEventElement(event) {
+                const div = document.createElement('div');
+                div.className = `event-item ${event.event_type.replace('_', '-')}`;
+                div.setAttribute('data-event-id', event.id);
+
+                const timestamp = new Date(event.timestamp).toLocaleString();
+                const user = event.user || 'System';
+                const channel = event.channel ? `in ${event.channel}` : '';
+
+                div.innerHTML = `
+                    <div class="event-timestamp">${timestamp}</div>
+                    <div class="event-header">
+                        <div>
+                            <span class="event-user">${user}</span>
+                            ${channel ? `<span class="event-channel">${channel}</span>` : ''}
+                        </div>
+                        <span class="event-type ${event.event_type.replace('_', '-')}">
+                            ${event.event_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                    </div>
+                    ${event.message ? `<div class="event-message">${event.message}</div>` : ''}
+                `;
+
+                return div;
+            }
+
+            function clearEvents() {
+                eventsContainer.innerHTML = '';
+            }
+
+            // Connect to WebSocket when page loads
+            window.addEventListener('load', connectWebSocket);
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function() {
+                if (websocket) {
+                    websocket.close();
+                }
+            });
+        </script>
+    </body>
+</html>

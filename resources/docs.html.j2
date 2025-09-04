@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Rhai Modules Documentation - Bruh</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <script src="js/umbrella.min.js"></script>
+        <style>
+            .docs-container {
+                max-width: none;
+                margin: 0;
+            }
+
+            .docs-header {
+                margin-bottom: 2rem;
+                padding: 2rem;
+                background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+                border-radius: 8px;
+                border: 1px solid #333;
+            }
+
+            .docs-title {
+                color: #00d1b2;
+                font-size: 2.5rem;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+            }
+
+            .docs-subtitle {
+                color: #b8b8b8;
+                font-size: 1.1rem;
+                margin-bottom: 0;
+            }
+
+            .module-grid {
+                display: grid;
+                gap: 2rem;
+            }
+
+            .module-card {
+                background-color: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 12px;
+                overflow: hidden;
+                transition: all 0.2s ease;
+            }
+
+            .module-card:hover {
+                border-color: #00d1b2;
+                box-shadow: 0 4px 20px rgba(0, 209, 178, 0.1);
+            }
+
+            .module-header {
+                background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+                padding: 1.5rem;
+                border-bottom: 1px solid #333;
+            }
+
+            .module-title {
+                color: #ffffff;
+                font-size: 1.4rem;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+            }
+
+            .module-subtitle {
+                color: #b8b8b8;
+                font-size: 1rem;
+                margin: 0;
+            }
+
+            .module-content {
+                padding: 1.5rem;
+            }
+
+            .function-item {
+                margin-bottom: 1.5rem;
+                padding: 1rem;
+                background-color: #252525;
+                border-radius: 8px;
+                border-left: 4px solid #00d1b2;
+            }
+
+            .function-signature {
+                background-color: #1a1a1a !important;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 0.75rem 1rem;
+                margin: 0.5rem 0;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .function-signature:hover {
+                background-color: #2a2a2a !important;
+                border-color: #00d1b2;
+            }
+
+            .parameter-list {
+                margin: 1rem 0;
+            }
+
+            .parameter-item {
+                margin: 0.5rem 0;
+                padding-left: 1rem;
+                border-left: 2px solid #444;
+                color: #b8b8b8;
+            }
+
+            .example-code {
+                background-color: #1a1a1a !important;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 1rem;
+                margin: 1rem 0;
+                font-family: 'Courier New', monospace;
+                font-size: 0.85rem;
+                white-space: pre-wrap;
+                overflow-x: auto;
+                border-left: 4px solid #23d160;
+            }
+
+            .config-required {
+                background: linear-gradient(135deg, #ffdd57, #ffd43b) !important;
+                color: #000 !important;
+                padding: 1rem;
+                border-radius: 6px;
+                margin: 1rem 0;
+                font-weight: bold;
+                border: 1px solid #ffd43b;
+            }
+
+            .back-button {
+                margin-bottom: 2rem;
+            }
+
+            .core-language {
+                border: 2px solid #00d1b2 !important;
+                box-shadow: 0 4px 20px rgba(0, 209, 178, 0.15);
+            }
+
+            .core-language-header {
+                background: linear-gradient(135deg, #00d1b2, #1e5a8a) !important;
+                color: white;
+            }
+
+            .core-language-header .subtitle {
+                color: rgba(255, 255, 255, 0.9);
+            }
+
+            .module-summary {
+                background: linear-gradient(135deg, #00d1b2, #1e5a8a);
+                color: white;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                border-radius: 12px;
+                border: 1px solid #00d1b2;
+            }
+
+            .quick-reference {
+                background-color: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 12px;
+                padding: 2rem;
+                margin-top: 2rem;
+            }
+        </style>
+        <script>
+            function goHome() {
+                window.location.href = "{{ protocol }}://{{ host }}/";
+            }
+
+            function toggleFunction(id) {
+                const element = document.getElementById(id);
+                if (element.style.display === 'none') {
+                    element.style.display = 'block';
+                } else {
+                    element.style.display = 'none';
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="new_script()" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Channels</div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">{{ channels|length }}</span>
+                        </div>
+                    </div>
+                    {% if channels %}
+                    <ul class="nav-menu">
+                        {% for channel in channels %}
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" title="Channel: {{ channel.name }}">
+                                <i>📺</i>
+                                {{ channel.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Database</div>
+                    <div class="quick-stats">
+                        {% set total_rows = namespace(total=0) %}
+                        {% for table in sqlite_tables %}
+                            {% set total_rows.total = total_rows.total + table.row_count %}
+                        {% endfor %}
+                        <div class="stat-item">
+                            <span class="stat-label">Tables</span>
+                            <span class="stat-value">{{ sqlite_tables|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Rows</span>
+                            <span class="stat-value">{{ total_rows.total }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function new_script() {
+                        let name = prompt("Script name:");
+                        if (name != null) {
+                            window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                        }
+                    }
+                </script>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="docs-container">
+                    <div class="docs-header">
+                        <h1 class="docs-title">📚 Documentation</h1>
+                        <p class="docs-subtitle">
+                            Complete reference for the Rhai scripting language and all available modules in Bruh.
+                            Use <code>{{ activator }}</code> to trigger your scripts from chat.
+                        </p>
+                        <p style="margin-top: 1rem; color: #b8b8b8;">
+                            {% set regular_modules = modules|selectattr('name', 'ne', 'rhai')|list %}
+                            {% set core_lang = modules|selectattr('name', 'eq', 'rhai')|list %}
+                            {% if core_lang %}
+                                <strong>1</strong> language guide +
+                                <strong>{{ regular_modules|length }}</strong> modules available with
+                                <strong>{{ regular_modules|map(attribute='functions')|map('length')|sum }}</strong> functions total.
+                            {% else %}
+                                <strong>{{ modules|length }}</strong> modules available with
+                                <strong>{{ modules|map(attribute='functions')|map('length')|sum }}</strong> functions total.
+                            {% endif %}
+                        </p>
+                    </div>
+
+            {% set core_lang = modules|selectattr('name', 'eq', 'rhai')|list %}
+            {% if core_lang %}
+            <div class="module-card core-language">
+                <div class="module-header core-language-header">
+                    <h2 class="title is-4">📚 Rhai Language Guide</h2>
+                    <p class="subtitle">Core Rhai scripting language documentation - start here if you're new!</p>
+                </div>
+                <div class="module-content">
+                    <div class="content">
+                        <p>Welcome to Rhai! This comprehensive guide covers the core language features you'll need to write effective scripts. Rhai is a fast, safe, and easy-to-use scripting language that's perfect for automation, configuration, and extending applications.</p>
+
+                        <h4>Key Features:</h4>
+                        <ul>
+                            <li><strong>Simple Syntax:</strong> Clean, readable code similar to JavaScript and Rust</li>
+                            <li><strong>Dynamic Typing:</strong> Flexible type system that adapts to your needs</li>
+                            <li><strong>Safe Execution:</strong> Memory-safe with no null pointer exceptions</li>
+                            <li><strong>Rich Standard Library:</strong> Built-in support for arrays, objects, strings, and more</li>
+                            <li><strong>Extensible:</strong> Easy to add custom functions and modules</li>
+                        </ul>
+
+                        <h4>Quick Start:</h4>
+                        <div class="example-code">// Variables and basic operations
+let message = "Hello, Rhai!";
+let number = 42;
+print(message + " The answer is " + number);
+
+// Arrays and loops
+let fruits = ["apple", "banana", "cherry"];
+for fruit in fruits {
+    print("I like " + fruit);
+}
+
+// Functions
+fn greet(name) {
+    return "Hello, " + name + "!";
+}
+print(greet("World"));</div>
+
+                        <h4>External Resources:</h4>
+                        <div class="content">
+                            <div class="buttons">
+                                <a href="https://rhai.rs/" target="_blank" class="button is-primary is-small">
+                                    🏠 Rhai Homepage
+                                </a>
+                                <a href="https://rhai.rs/book/" target="_blank" class="button is-info is-small">
+                                    📚 Rhai Book
+                                </a>
+                                <a href="https://github.com/rhaiscript/rhai" target="_blank" class="button is-dark is-small">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 4px;">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    GitHub
+                                </a>
+                                <a href="https://rhai.rs/book/language/" target="_blank" class="button is-success is-small">
+                                    📖 Language Reference
+                                </a>
+                            </div>
+                            <p style="margin-top: 1rem; font-size: 0.9em; color: #666;">
+                                📖 <strong>Pro tip:</strong> The Rhai Book provides comprehensive documentation for advanced features and detailed language specifications.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% for module in modules %}
+            {% if module.name != 'rhai' %}
+            <div class="module-card">
+                <div class="module-header">
+                    <h2 class="title is-4">{{ module.name }}</h2>
+                <p class="subtitle">{{ module.description }}</p>
+                {% if module.config_required %}
+                <div class="config-required">
+                    ⚠️ Configuration Required: {{ module.config_required }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="module-content">
+                {% if module.functions %}
+                <h3 class="title is-5">Functions ({{ module.functions|length }})</h3>
+
+                {% for function in module.functions %}
+                <div class="function-item">
+                    <div class="function-signature" onclick="toggleFunction('func-{{ module.name }}-{{ loop.index }}')" style="cursor: pointer;">
+                        <strong>{{ function.name }}</strong> - {{ function.description }}
+                    </div>
+
+                    <div id="func-{{ module.name }}-{{ loop.index }}" style="display: none; margin-top: 1rem;">
+                        <div class="function-signature">
+                            {{ function.signature }}
+                        </div>
+
+                        {% if function.parameters %}
+                        <div class="parameter-list">
+                            <strong>Parameters:</strong>
+                            <ul>
+                                {% for param in function.parameters %}
+                                <li class="parameter-item">
+                                    <code>{{ param.name }}</code> ({{ param.param_type }}): {{ param.description }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if function.returns %}
+                        <div class="parameter-list">
+                            <strong>Returns:</strong> {{ function.returns }}
+                        </div>
+                        {% endif %}
+
+                        {% if function.examples %}
+                        <div class="parameter-list">
+                            <strong>Examples:</strong>
+                            {% for example in function.examples %}
+                            <div class="example-code">{{ example }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {% if module.examples %}
+                <h3 class="title is-5">Usage Examples</h3>
+                {% for example in module.examples %}
+                <div class="example-code">{{ example }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+            <div class="module-card">
+                <div class="module-header">
+                    <h2 class="title is-4">Quick Reference</h2>
+                    <p class="subtitle">Common patterns and tips for using Rhai modules</p>
+                </div>
+
+                <div class="module-content">
+                    <h3 class="title is-5">Error Handling</h3>
+                    <div class="example-code">// Most functions return Option<T> for safe error handling
+if let Some(value) = secrets::get("api_key") {
+    print("Found API key: " + value);
+} else {
+    print("API key not found");
+}</div>
+
+                    <h3 class="title is-5">String Concatenation</h3>
+                    <div class="example-code">// Use backticks for string interpolation
+let name = "World";
+let greeting = `Hello, ${name}!`;
+
+// Or use + for concatenation
+let message = "Hello, " + name + "!";</div>
+
+                    <h3 class="title is-5">Working with SQL Results</h3>
+                    <div class="example-code">// Query returns SqlRows (iterable)
+let users = sql_query("SELECT id, name FROM users");
+
+for user in users {
+    // Access columns by name
+    print(`User ${user.id}: ${user.name}`);
+}</div>
+
+                    <h3 class="title is-5">Configuration Dependencies</h3>
+                    <p>Some modules require specific configuration to be enabled:</p>
+                    <ul>
+                        <li><code>rand</code> - Set <code>engine.enable_rand = true</code></li>
+                        <li><code>sci</code> - Set <code>engine.enable_sci = true</code></li>
+                        <li><code>fs</code> - Set <code>engine.enable_fs = true</code></li>
+                        <li><code>http</code> - Set <code>engine.enable_http = true</code></li>
+                    </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Bruh :: SQL Query</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <script src="js/umbrella.min.js"></script>
+        <style>
+            .sql-container {
+                max-width: none;
+                margin: 0;
+            }
+
+            .sql-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid #333;
+            }
+
+            .sql-title {
+                color: #ffffff;
+                margin: 0;
+                font-size: 1.8rem;
+                font-weight: 600;
+            }
+
+            .query-section {
+                margin-bottom: 2rem;
+            }
+
+            .query-form {
+                background-color: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+            }
+
+            .results-section {
+                margin-bottom: 2rem;
+            }
+
+            .results-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+            }
+
+            .results-title {
+                color: #ffffff;
+                margin: 0;
+                font-size: 1.5rem;
+                font-weight: 600;
+            }
+
+            .tables-section {
+                margin-top: 2rem;
+            }
+
+            .tables-title {
+                color: #ffffff;
+                margin-bottom: 1.5rem;
+                font-size: 1.5rem;
+                font-weight: 600;
+            }
+
+            /* Monaco Editor Styles for SQL */
+            .sql-editor-container {
+                height: 400px;
+                border: 1px solid #333;
+                border-radius: 6px;
+                overflow: hidden;
+                margin-bottom: 1rem;
+            }
+
+            .sql-editor {
+                width: 100%;
+                height: 100%;
+            }
+
+            .sql-notification {
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+                padding: 1rem;
+            }
+
+            .sql-notification.is-info {
+                background-color: #1a4d4d;
+                border: 1px solid #00d1b2;
+                color: #b8e6e6;
+            }
+
+            .sql-notification.is-danger {
+                background-color: #4d1a1a;
+                border: 1px solid #ff3860;
+                color: #ffb8b8;
+            }
+
+            /* SQL Result Cell Textarea Styling */
+            .sql-result-cell {
+                width: 100%;
+                height: 3rem;
+                padding: 0.5rem;
+                border: 1px solid #333;
+                border-radius: 4px;
+                background-color: #2a2a2a;
+                color: #ffffff;
+                font-family: 'Courier New', monospace;
+                font-size: 0.875rem;
+                line-height: 1.4;
+                resize: none;
+                overflow-y: auto;
+                word-wrap: break-word;
+                white-space: pre-wrap;
+            }
+
+            .sql-result-cell:focus {
+                outline: none;
+                border-color: #3273dc;
+                box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+            }
+
+            /* Hide scrollbar for short content */
+            .sql-result-cell::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .sql-result-cell::-webkit-scrollbar-track {
+                background: #2a2a2a;
+            }
+
+            .sql-result-cell::-webkit-scrollbar-thumb {
+                background: #555;
+                border-radius: 3px;
+            }
+
+            .sql-result-cell::-webkit-scrollbar-thumb:hover {
+                background: #666;
+            }
+        </style>
+        <script>
+            let sqlEditor = null;
+
+            function goback() {
+                window.location.href = "{{ protocol }}://{{ host }}/";
+            }
+
+            function executeQuery() {
+                if (!sqlEditor) {
+                    console.error('SQL Editor not initialized');
+                    return;
+                }
+
+                const query = sqlEditor.getValue();
+                const form = document.getElementById('sqlForm');
+                const queryField = document.getElementById('queryField');
+                queryField.value = query;
+                form.submit();
+            }
+
+            function clearQuery() {
+                if (!sqlEditor) {
+                    console.error('SQL Editor not initialized');
+                    return;
+                }
+
+                sqlEditor.setValue('');
+                sqlEditor.focus();
+            }
+
+            async function refreshTableSchemas() {
+                try {
+                    const response = await fetch('/api/table-info', {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                        }
+                    });
+
+                    if (response.ok) {
+                        const tableData = await response.json();
+                        updateTableSchemasDisplay(tableData);
+                    } else {
+                        console.error('Failed to refresh table schemas:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error refreshing table schemas:', error);
+                }
+            }
+
+            function updateTableSchemasDisplay(tables) {
+                const container = document.querySelector('.content:last-child');
+                if (!container) return;
+
+                // Find the existing table schemas section
+                const existingTable = container.querySelector('table');
+                if (!existingTable) return;
+
+                // Create new table content
+                let tableHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Table Name</th>
+                                <th>Schema</th>
+                                <th>Row Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                tables.forEach(table => {
+                    tableHTML += `
+                        <tr>
+                            <td><strong>${table.name}</strong></td>
+                            <td>
+                                ${table.schema.map(column => {
+                                    const primaryKeyIcon = column.primary_key ? '<span class="primary-key-icon">🔑</span>' : '';
+                                    const nullableText = column.nullable ? '' : ' NOT NULL';
+                                    const defaultText = column.default_value ? ` DEFAULT ${column.default_value}` : '';
+                                    return `<div style="margin-bottom: 4px;">
+                                        <code class="${column.primary_key ? 'primary-key-column' : ''}">
+                                            ${primaryKeyIcon}${column.name}: ${column.data_type}${nullableText}${defaultText}
+                                        </code>
+                                    </div>`;
+                                }).join('')}
+                            </td>
+                            <td>${table.row_count}</td>
+                        </tr>`;
+                });
+
+                tableHTML += `
+                        </tbody>
+                    </table>`;
+
+                // Replace the existing table with the updated one
+                existingTable.outerHTML = tableHTML;
+            }
+
+            // Auto-refresh table schemas when the page loads (after query execution)
+            document.addEventListener('DOMContentLoaded', function() {
+                {% if executed_query %}
+                refreshTableSchemas();
+                {% endif %}
+            });
+        </script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="new_script()" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Channels</div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">{{ channels|length }}</span>
+                        </div>
+                    </div>
+                    {% if channels %}
+                    <ul class="nav-menu">
+                        {% for channel in channels %}
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" title="Channel: {{ channel.name }}">
+                                <i>📺</i>
+                                {{ channel.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Database</div>
+                    <div class="quick-stats">
+                        {% set total_rows = namespace(total=0) %}
+                        {% for table in sqlite_tables %}
+                            {% set total_rows.total = total_rows.total + table.row_count %}
+                        {% endfor %}
+                        <div class="stat-item">
+                            <span class="stat-label">Tables</span>
+                            <span class="stat-value">{{ sqlite_tables|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Rows</span>
+                            <span class="stat-value">{{ total_rows.total }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function new_script() {
+                        let name = prompt("Script name:");
+                        if (name != null) {
+                            window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                        }
+                    }
+                </script>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="sql-container">
+                    <div class="sql-header">
+                        <h2 class="sql-title">📊 SQL Query Interface</h2>
+                        <div class="action-buttons">
+                            <button class="button" type="button" onclick="goback()">
+                                <i>🏠</i>
+                                Home
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Query Form Section -->
+                    <section class="query-section">
+                        <div class="query-form">
+                            <form id="sqlForm" method="POST" action="/sql">
+                                <input type="hidden" name="query" id="queryField" value="">
+                                <div class="field">
+                                    <label class="label">SQL Query</label>
+                                    <div class="control">
+                                        <div class="sql-editor-container">
+                                            <div class="sql-editor" id="sqlEditor"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field is-grouped">
+                                    <div class="control">
+                                        <button class="button is-primary" type="button" onclick="executeQuery()">Execute Query</button>
+                                    </div>
+                                    <div class="control">
+                                        <button class="button" type="button" onclick="clearQuery()">Clear</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+
+                    <!-- Query Results Section -->
+                    {% if executed_query %}
+                    <section class="results-section">
+                        <div class="results-header">
+                            <h3 class="results-title">Query Results</h3>
+                        </div>
+
+                        {% if query_success %}
+                            {% if not query_results %}
+                                <div class="sql-notification is-info">
+                                    Query executed successfully. No rows returned.
+                                </div>
+                            {% else %}
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                {% for column_name in query_columns %}
+                                                <th>{{ column_name }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in query_results %}
+                                            <tr>
+                                                {% for column_name in query_columns %}
+                                                <td>
+                                                    <textarea readonly class="sql-result-cell">{{ row[column_name] }}</textarea>
+                                                </td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="has-text-grey" style="margin-top: 1rem;">Found {{ query_results | length }} row(s)</p>
+                            {% endif %}
+                        {% else %}
+                            <div class="sql-notification is-danger">
+                                <strong>Query Error:</strong> {{ query_error }}
+                            </div>
+                        {% endif %}
+                    </section>
+                    {% endif %}
+
+                    <!-- Available Tables Section -->
+                    <section class="tables-section">
+                        <h3 class="tables-title">Available Tables</h3>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Table Name</th>
+                                        <th>Schema</th>
+                                        <th>Row Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for table in sqlite_tables %}
+                                    <tr>
+                                        <td><strong>{{ table.name }}</strong></td>
+                                        <td>
+                                            {% for column in table.schema %}
+                                            <div style="margin-bottom: 4px;">
+                                                {% if column.primary_key %}
+                                                <code class="primary-key-column">
+                                                    <span class="primary-key-icon">🔑</span>{{ column.name }}: {{ column.data_type }}{% if not column.nullable %} NOT NULL{% endif %}{% if column.default_value %} DEFAULT {{ column.default_value }}{% endif %}
+                                                </code>
+                                                {% else %}
+                                                <code>{{ column.name }}: {{ column.data_type }}{% if not column.nullable %} NOT NULL{% endif %}{% if column.default_value %} DEFAULT {{ column.default_value }}{% endif %}</code>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </td>
+                                        <td>{{ table.row_count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <script src="vs/loader.js"></script>
+        <script>
+            require(["vs/editor/editor.main"], function (monaco) {
+                // Create SQL editor
+                const editorElement = document.getElementById("sqlEditor");
+                sqlEditor = monaco.editor.create(editorElement, {
+                    value: `{% if query %}{{ query }}{% else %}-- Enter your SQL query here
+-- Examples:
+-- SELECT * FROM your_table;
+-- INSERT INTO your_table (column) VALUES ('value');
+-- CREATE TABLE new_table (id INTEGER PRIMARY KEY);{% endif %}`,
+                    language: "sql",
+                    theme: "vs-dark",
+                    showFoldingControls: "always",
+                    automaticLayout: true,
+                    minimap: { enabled: true },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    fontFamily: "'Courier New', monospace",
+                    lineNumbers: "on",
+                    renderWhitespace: "boundary",
+                    wordWrap: "on",
+                    tabSize: 4,
+                    insertSpaces: true,
+                    bracketPairColorization: { enabled: true },
+                    suggestOnTriggerCharacters: true,
+                    quickSuggestions: {
+                        other: true,
+                        comments: false,
+                        strings: false
+                    },
+                    parameterHints: {
+                        enabled: true
+                    },
+                    hover: {
+                        enabled: true
+                    },
+                    contextmenu: true,
+                    mouseWheelZoom: true,
+                    smoothScrolling: true,
+                    cursorBlinking: "blink",
+                    cursorSmoothCaretAnimation: "on",
+                    renderLineHighlight: "line",
+                    selectionHighlight: true,
+                    occurrencesHighlight: true,
+                    codeLens: false,
+                    folding: true,
+                    foldingStrategy: "indentation",
+                    showFoldingControls: "mouseover",
+                    unfoldOnClickAfterEndOfLine: true,
+                    matchBrackets: "always",
+                    autoClosingBrackets: "always",
+                    autoClosingQuotes: "always",
+                    autoSurround: "brackets",
+                    formatOnType: true,
+                    formatOnPaste: true,
+                    trimAutoWhitespace: true,
+                    wordBasedSuggestions: "currentDocument",
+                    suggest: {
+                        enabled: true,
+                        showKeywords: true,
+                        showSnippets: true,
+                        showFunctions: true,
+                        showVariables: true,
+                        showModules: true,
+                        showProperties: true,
+                        showEvents: true,
+                        showOperators: true,
+                        showValues: true,
+                        showConstants: true,
+                        showClasses: true,
+                        showStructs: true,
+                        showInterfaces: true,
+                        showModules: true,
+                        showProperties: true,
+                        showEvents: true,
+                        showOperators: true,
+                        showValues: true,
+                        showConstants: true,
+                        showEnums: true,
+                        showEnumMembers: true,
+                        showKeywords: true,
+                        showWords: true,
+                        showColors: true,
+                        showFiles: true,
+                        showReferences: true,
+                        showFolders: true,
+                        showTypeParameters: true,
+                        showSnippets: true,
+                        filterGraceful: true,
+                        localityBonus: true,
+                        shareSuggestSelections: true,
+                        showInlineDetails: true,
+                        showDeprecated: false,
+                        insertMode: "insert",
+                        insertHighlight: true
+                    }
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    if (sqlEditor) {
+                        sqlEditor.layout();
+                    }
+                });
+
+                console.log('SQL Editor initialized with Monaco');
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Bruh :: Edit {{ script_name }}</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <link rel="stylesheet" href="css/editor.css">
+        <style>
+            /* Override the main layout for edit page */
+            .app-container {
+                display: flex;
+                min-height: 100vh;
+                background-color: #121212;
+            }
+
+            .sidebar {
+                width: 280px;
+                background-color: #1a1a1a;
+                border-right: 1px solid #333;
+                padding: 1.5rem;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                overflow-y: auto;
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+                z-index: 1000;
+            }
+
+            .main-content {
+                flex: 1;
+                margin-left: 280px;
+                padding: 2rem;
+                background-color: #121212;
+                min-height: 100vh;
+            }
+
+            /* Edit page specific styles */
+            .edit-container {
+                height: calc(100vh - 250px);
+                max-height: calc(100vh - 250px);
+                min-height: 400px;
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                overflow: hidden;
+            }
+
+            /* Responsive adjustments */
+            @media (max-width: 1200px) {
+                .edit-container {
+                    height: calc(100vh - 300px);
+                    min-height: 350px;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .edit-container {
+                    height: calc(100vh - 350px);
+                    min-height: 300px;
+                }
+            }
+
+            .edit-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid #333;
+            }
+
+            .edit-title {
+                color: #ffffff;
+                margin: 0;
+                font-size: 1.8rem;
+                font-weight: 600;
+            }
+            /* Rhai language syntax highlighting */
+            .monaco-editor .token.keyword.rhai { color: #569cd6; font-weight: bold; }
+            .monaco-editor .token.support.function.rhai { color: #dcdcaa; }
+            .monaco-editor .token.number.rhai { color: #b5cea8; }
+            .monaco-editor .token.string.rhai { color: #ce9178; }
+            .monaco-editor .token.comment.rhai { color: #6a9955; font-style: italic; }
+            .monaco-editor .token.operator.rhai { color: #d4d4d4; }
+            .monaco-editor .token.delimiter.rhai { color: #d4d4d4; }
+
+            /* Alternative token class names that Monaco might generate */
+            .monaco-editor .keyword { color: #569cd6; font-weight: bold; }
+            .monaco-editor .support.function { color: #dcdcaa; }
+            .monaco-editor .number { color: #b5cea8; }
+            .monaco-editor .string { color: #ce9178; }
+            .monaco-editor .comment { color: #6a9955; font-style: italic; }
+            .monaco-editor .operator { color: #d4d4d4; }
+            .monaco-editor .delimiter { color: #d4d4d4; }
+
+            /* Layout styles */
+            .editor-container {
+                display: flex;
+                height: 100%;
+                position: relative;
+                min-height: 0;
+            }
+
+            .editor-pane {
+                flex: 1;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                border-right: none;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+                overflow: hidden;
+                min-width: 200px;
+            }
+
+            .resizer {
+                width: 8px;
+                background-color: #e9ecef;
+                border: 1px solid #ccc;
+                border-left: none;
+                border-right: none;
+                cursor: col-resize;
+                position: relative;
+                z-index: 10;
+                transition: background-color 0.2s;
+            }
+
+            .resizer:hover {
+                background-color: #007bff;
+                border-color: #007bff;
+            }
+
+            .resizer::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 2px;
+                height: 20px;
+                background-color: #6c757d;
+                border-radius: 1px;
+            }
+
+            .resizer:hover::before {
+                background-color: white;
+            }
+
+            .output-pane {
+                flex: 1;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                border-left: none;
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+                padding: 1rem;
+                overflow-y: auto;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                min-width: 200px;
+                min-height: 0;
+                max-height: 100%;
+            }
+
+            .output-header {
+                font-weight: bold;
+                margin-bottom: 0.5rem;
+                border-bottom: 1px solid #ddd;
+                padding-bottom: 0.25rem;
+            }
+
+            .output-content {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+
+            .output-success {
+                color: #28a745;
+            }
+
+            .output-error {
+                color: #dc3545;
+            }
+
+            .button-group {
+                margin-bottom: 1rem;
+            }
+
+            .button-group .button {
+                margin-right: 0.5rem;
+            }
+
+            /* Context Panel Styles */
+            .context-panel {
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 1rem;
+                margin: 1rem 0;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            .context-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .context-header h4 {
+                margin: 0;
+                font-size: 1.1rem;
+            }
+
+            .context-variables {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .context-variable {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .context-variable input {
+                flex: 1;
+                padding: 0.375rem 0.75rem;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                font-size: 0.875rem;
+            }
+
+            .context-variable input:focus {
+                outline: none;
+                border-color: #007bff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            }
+
+            .context-variable .variable-key {
+                flex: 1;
+            }
+
+            .context-variable .variable-value {
+                flex: 1;
+            }
+
+            .context-variable .remove-btn {
+                padding: 0.375rem 0.75rem;
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.75rem;
+            }
+
+            .context-variable .remove-btn:hover {
+                background-color: #c82333;
+            }
+        </style>
+        <script src="js/umbrella.min.js"></script>
+        <script>
+            let editorInstance = null;
+            let isResizing = false;
+            let startX = 0;
+            let startEditorWidth = 0;
+            let startOutputWidth = 0;
+            let contextVariables = [];
+
+            function goback() {
+                window.location.href = "{{ protocol }}://{{ host }}/";
+            }
+
+            function update() {
+                if (!editorInstance) {
+                    console.error('Editor not initialized');
+                    return;
+                }
+
+                const scriptContent = editorInstance.getValue();
+                const form = document.getElementById('editForm');
+                const scriptField = document.getElementById('scriptField');
+
+                scriptField.value = scriptContent;
+
+                // Prompt for revision description
+                const description = prompt('Describe the changes in this revision (optional):', '');
+                if (description === null) {
+                    // User cancelled
+                    return;
+                }
+
+                // Add description to form if provided
+                if (description.trim()) {
+                    let descField = document.getElementById('descriptionField');
+                    if (!descField) {
+                        descField = document.createElement('input');
+                        descField.type = 'hidden';
+                        descField.name = 'description';
+                        descField.id = 'descriptionField';
+                        form.appendChild(descField);
+                    }
+                    descField.value = description.trim();
+                }
+
+                form.submit();
+            }
+
+            async function runScript() {
+                if (!editorInstance) {
+                    console.error('Editor not initialized');
+                    return;
+                }
+
+                const scriptContent = editorInstance.getValue();
+                const outputPane = document.getElementById('output-pane');
+                const outputContent = document.getElementById('output-content');
+
+                // Clear previous output
+                outputContent.innerHTML = '';
+                outputPane.classList.remove('output-success', 'output-error');
+
+                // Show loading message
+                outputContent.innerHTML = '<div class="output-header">Running...</div>';
+
+                try {
+                    const contextData = getContextData();
+                    const requestData = {
+                        script: scriptContent
+                    };
+
+                    if (Object.keys(contextData).length > 0) {
+                        requestData.context = JSON.stringify(contextData);
+                    }
+
+                    const response = await fetch('/eval', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams(requestData)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        outputPane.classList.add('output-success');
+
+                        let outputHtml = '';
+                        if (result.output) {
+                            outputHtml += `<div class="output-header">Output:</div><div class="output-content">${result.output}</div>`;
+                        }
+                        if (result.result) {
+                            outputHtml += `<div class="output-header">Result:</div><div class="output-content">${result.result}</div>`;
+                        }
+                        if (!result.output && !result.result) {
+                            outputHtml = `<div class="output-header">Result:</div><div class="output-content">No output</div>`;
+                        }
+
+                        outputContent.innerHTML = outputHtml;
+                    } else {
+                        outputPane.classList.add('output-error');
+
+                        let outputHtml = '';
+                        if (result.output) {
+                            outputHtml += `<div class="output-header">Output:</div><div class="output-content">${result.output}</div>`;
+                        }
+                        outputHtml += `<div class="output-header">Error:</div><div class="output-content">${result.error || 'Unknown error'}</div>`;
+
+                        outputContent.innerHTML = outputHtml;
+                    }
+                } catch (error) {
+                    outputPane.classList.add('output-error');
+                    outputContent.innerHTML = `
+                        <div class="output-header">Network Error:</div>
+                        <div class="output-content">${error.message}</div>
+                    `;
+                }
+            }
+
+            // Context functionality
+            function toggleContext() {
+                const contextPanel = document.getElementById('contextPanel');
+                const isVisible = contextPanel.style.display !== 'none';
+
+                if (isVisible) {
+                    contextPanel.style.display = 'none';
+                } else {
+                    contextPanel.style.display = 'block';
+                }
+            }
+
+            function addContextVariable() {
+                const container = document.getElementById('contextVariables');
+                const variableDiv = document.createElement('div');
+                variableDiv.className = 'context-variable';
+                variableDiv.innerHTML = `
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="">
+                    <input type="text" class="input variable-value" placeholder="Variable value" value="">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)">×</button>
+                `;
+                container.appendChild(variableDiv);
+            }
+
+            function removeContextVariable(button) {
+                const variableDiv = button.parentElement;
+                variableDiv.remove();
+            }
+
+            function getContextData() {
+                const context = {};
+                const variables = document.querySelectorAll('.context-variable');
+
+                variables.forEach(variable => {
+                    const key = variable.querySelector('.variable-key').value.trim();
+                    const value = variable.querySelector('.variable-value').value.trim();
+
+                    if (key && value) {
+                        // Try to parse as JSON, fall back to string
+                        try {
+                            context[key] = JSON.parse(value);
+                        } catch (e) {
+                            context[key] = value;
+                        }
+                    }
+                });
+
+                return context;
+            }
+
+            // Resizer functionality
+            function initResizer() {
+                const resizer = document.getElementById('resizer');
+                const editorPane = document.getElementById('editor');
+                const outputPane = document.getElementById('output-pane');
+                const container = document.querySelector('.editor-container');
+
+                function startResize(e) {
+                    isResizing = true;
+                    startX = e.clientX;
+                    startEditorWidth = editorPane.offsetWidth;
+                    startOutputWidth = outputPane.offsetWidth;
+
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+
+                    document.addEventListener('mousemove', resize);
+                    document.addEventListener('mouseup', stopResize);
+                }
+
+                function resize(e) {
+                    if (!isResizing) return;
+
+                    const deltaX = e.clientX - startX;
+                    const containerWidth = container.offsetWidth - 8; // Subtract resizer width
+                    const minWidth = 200;
+
+                    let newEditorWidth = startEditorWidth + deltaX;
+                    let newOutputWidth = startOutputWidth - deltaX;
+
+                    // Ensure minimum widths
+                    if (newEditorWidth < minWidth) {
+                        newEditorWidth = minWidth;
+                        newOutputWidth = containerWidth - minWidth;
+                    }
+                    if (newOutputWidth < minWidth) {
+                        newOutputWidth = minWidth;
+                        newEditorWidth = containerWidth - minWidth;
+                    }
+
+                    // Calculate flex values based on the ratio
+                    const totalWidth = newEditorWidth + newOutputWidth;
+                    const editorFlex = (newEditorWidth / totalWidth);
+                    const outputFlex = (newOutputWidth / totalWidth);
+
+                    editorPane.style.flex = `${editorFlex} 0 0`;
+                    outputPane.style.flex = `${outputFlex} 0 0`;
+
+                    // Resize Monaco editor
+                    resizeEditor();
+                }
+
+                function stopResize() {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+
+                    document.removeEventListener('mousemove', resize);
+                    document.removeEventListener('mouseup', stopResize);
+                }
+
+                resizer.addEventListener('mousedown', startResize);
+            }
+
+            // Initialize resizer after DOM is loaded
+            document.addEventListener('DOMContentLoaded', initResizer);
+        </script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="new_script()" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Channels</div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">{{ channels|length }}</span>
+                        </div>
+                    </div>
+                    {% if channels %}
+                    <ul class="nav-menu">
+                        {% for channel in channels %}
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" title="Channel: {{ channel.name }}">
+                                <i>📺</i>
+                                {{ channel.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Database</div>
+                    <div class="quick-stats">
+                        {% set total_rows = namespace(total=0) %}
+                        {% for table in sqlite_tables %}
+                            {% set total_rows.total = total_rows.total + table.row_count %}
+                        {% endfor %}
+                        <div class="stat-item">
+                            <span class="stat-label">Tables</span>
+                            <span class="stat-value">{{ sqlite_tables|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Rows</span>
+                            <span class="stat-value">{{ total_rows.total }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function new_script() {
+                        let name = prompt("Script name:");
+                        if (name != null) {
+                            window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                        }
+                    }
+                </script>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <form id="editForm" method="POST" action="/edit">
+                    <input type="hidden" name="script_name" value="{{ script_name }}">
+                    <input type="hidden" name="script" id="scriptField" value="">
+
+                    <div class="edit-header">
+                        <h2 class="edit-title">Edit Script: {{ script_name }}</h2>
+                        <div class="action-buttons">
+                            <button class="button" type="button" onclick="update()">Save</button>
+                            <button class="button is-primary" type="button" onclick="runScript()">Run Script</button>
+                            <button class="button" type="button" onclick="toggleContext()">Context</button>
+                            <button class="button" type="button" onclick="goback()">Back</button>
+                        </div>
+                    </div>
+                </form>
+
+        <!-- Context Panel -->
+        <div class="context-panel" id="contextPanel" style="display: block;">
+            <div class="context-header">
+                <h4 class="subtitle is-4">Context</h4>
+                <button class="button is-small" type="button" onclick="addContextVariable()">Add Variable</button>
+            </div>
+            <div class="context-variables" id="contextVariables">
+                <!-- Default context variables available during script execution -->
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="channel">
+                    <input type="text" class="input variable-value" placeholder="Channel name" value="test_channel">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="sender">
+                    <input type="text" class="input variable-value" placeholder="Sender name" value="test_user">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="sender_id">
+                    <input type="text" class="input variable-value" placeholder="Sender ID" value="123456789">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="message">
+                    <input type="text" class="input variable-value" placeholder="Message content">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="bits">
+                    <input type="text" class="input variable-value" placeholder="Bits amount" value="0">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="message_id">
+                    <input type="text" class="input variable-value" placeholder="Message ID" value="">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <div class="context-variable">
+                    <input type="text" class="input variable-key" placeholder="Variable name" value="epoch_timestamp">
+                    <input type="text" class="input variable-value" placeholder="Timestamp" value="{{ now }}">
+                    <button type="button" class="remove-btn" onclick="removeContextVariable(this)" disabled>×</button>
+                </div>
+                <!-- Additional context variables will be added here dynamically -->
+            </div>
+        </div>
+
+                <div class="edit-container">
+                    <div class="editor-container">
+                        <div class="editor-pane" id="editor"></div>
+                        <div class="resizer" id="resizer" title="Drag to resize"></div>
+                        <div class="output-pane" id="output-pane">
+                            <div id="output-content">
+                                <div class="output-header">Output</div>
+                                <div class="output-content">Click "Run Script" to evaluate your script and see the results here.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <script src="vs/loader.js"></script>
+        <script>
+            require(["vs/editor/editor.main"], function (monaco) {
+                // Register the Rhai language first
+                try {
+                    console.log('Starting Rhai language registration...');
+
+                    // Always register the language first
+                    if (typeof monaco.languages.register === 'function') {
+                        monaco.languages.register({ id: 'rhai' });
+                        console.log('Language registered successfully');
+                    } else {
+                        console.error('monaco.languages.register is not available');
+                    }
+
+                    // Set language configuration
+                    if (typeof monaco.languages.setLanguageConfiguration === 'function') {
+                        monaco.languages.setLanguageConfiguration('rhai', {
+                            comments: {
+                                lineComment: '//',
+                                blockComment: ['/*', '*/']
+                            },
+                            brackets: [
+                                ['{', '}'],
+                                ['[', ']'],
+                                ['(', ')']
+                            ],
+                            autoClosingPairs: [
+                                { open: '{', close: '}' },
+                                { open: '[', close: ']' },
+                                { open: '(', close: ')' },
+                                { open: '"', close: '"', notIn: ['string'] },
+                                { open: "'", close: "'", notIn: ['string', 'comment'] },
+                                { open: '`', close: '`', notIn: ['string', 'comment'] }
+                            ],
+                            surroundingPairs: [
+                                { open: '{', close: '}' },
+                                { open: '[', close: ']' },
+                                { open: '(', close: ')' },
+                                { open: '"', close: '"' },
+                                { open: "'", close: "'" },
+                                { open: '`', close: '`' }
+                            ]
+                        });
+                        console.log('Language configuration set');
+                    }
+
+                    // Set up the tokenizer using the correct method
+                    if (typeof monaco.languages.setMonarchTokensProvider === 'function') {
+                        console.log('Using setMonarchTokensProvider for tokenizer');
+                        monaco.languages.setMonarchTokensProvider('rhai', {
+                            tokenizer: {
+                                root: [
+                                    // Keywords
+                                    [/\b(const|let|return|if|else|switch|throw|try|catch|for|in|loop|do|while|until|break|continue|import|export|as|fn|private|true|false|this)\b/, 'keyword'],
+                                    // Support functions
+                                    [/\b(print|debug|call|curry|eval|type_of|is_def_var|is_def_fn|is_shared)\b/, 'support.function'],
+                                    // Numbers
+                                    [/\b(0b[01][01_]*|0o[0-7][0-7_]*|0x[0-9a-fA-F][0-9a-fA-F_]*|\d*\.\d+([eE][\-+]?\d+)?|\d+)\b/, 'number'],
+                                    // Strings
+                                    [/["'`][^"'`]*["'`]/, 'string'],
+                                    [/\/\/.*$/, 'comment'],
+                                    [/\/\*/, 'comment', '@comment'],
+                                    // Operators
+                                    [/[=<>!+\-*\/&|%^]+/, 'operator'],
+                                    // Delimiters
+                                    [/[{}()\[\]]/, 'delimiter'],
+                                    // Identifiers
+                                    [/[a-zA-Z_]\w*/, 'identifier']
+                                ],
+                                comment: [
+                                    [/[^\/*]+/, 'comment'],
+                                    [/\/\*/, 'comment', '@push'],
+                                    ["\\*/", 'comment', '@pop'],
+                                    [/[\/*]/, 'comment']
+                                ]
+                            }
+                        });
+                        console.log('Tokenizer set successfully');
+                    } else if (typeof monaco.languages.registerTokensProviderFactory === 'function') {
+                        console.log('Using registerTokensProviderFactory');
+                        monaco.languages.registerTokensProviderFactory('rhai', {
+                            create: function() {
+                                return createTokensProvider();
+                            }
+                        });
+                    } else if (typeof monaco.languages.setTokensProvider === 'function') {
+                        console.log('Using setTokensProvider');
+                        monaco.languages.setTokensProvider('rhai', createTokensProvider());
+                    } else {
+                        console.error('No tokenizer methods available');
+                    }
+
+                } catch (error) {
+                    console.error('Error registering Rhai language:', error);
+                }
+
+                // Create a simple tokens provider function
+                function createTokensProvider() {
+                    return {
+                        getInitialState: () => ({ state: 'root' }),
+                        tokenize: (line, state) => {
+                            const tokens = [];
+
+                            // Simple keyword matching
+                            const keywords = ['const', 'let', 'return', 'if', 'else', 'fn', 'true', 'false', 'this'];
+                            const keywordRegex = new RegExp('\\b(' + keywords.join('|') + ')\\b', 'g');
+
+                            let match;
+                            while ((match = keywordRegex.exec(line)) !== null) {
+                                tokens.push({
+                                    startIndex: match.index,
+                                    scopes: 'keyword.rhai'
+                                });
+                                tokens.push({
+                                    startIndex: match.index + match[0].length,
+                                    scopes: ''
+                                });
+                            }
+
+                            return {
+                                tokens: tokens.length > 0 ? tokens : [{ startIndex: 0, scopes: '' }],
+                                endState: state
+                            };
+                        }
+                    };
+                }
+
+                const editorElement = document.getElementById("editor");
+                editorInstance = monaco.editor.create(editorElement, {
+                    value: "{{ script | safe }}",
+                    language: "rhai",
+                    theme: "vs-dark",
+                    showFoldingControls: "always",
+                    automaticLayout: false, // We'll handle layout manually for better control
+                });
+
+                console.log('Registered languages:', monaco.languages.getLanguages().map(l => l.id));
+                console.log('Current language:', editorInstance.getModel().getLanguageId());
+
+                editorInstance.getModel().onDidChangeLanguage(function(e) {
+                    console.log('Language changed to:', e.newLanguage);
+                });
+
+                editorInstance.onDidChangeModelContent(function() {
+                    const model = editorInstance.getModel();
+                    const lineCount = model.getLineCount();
+                    if (lineCount > 0) {
+                        const tokens = model.getLineTokens(1);
+                        console.log('Tokens for line 1:', tokens.tokens.map(t => ({ type: t.type, offset: t.offset, length: t.length })));
+                    }
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    if (editorInstance) {
+                        editorInstance.layout();
+                    }
+                });
+            });
+
+            // Utility function to resize Monaco editor
+            function resizeEditor() {
+                if (editorInstance) {
+                    const editorElement = document.getElementById('editor');
+                    const rect = editorElement.getBoundingClientRect();
+                    editorInstance.layout({
+                        width: rect.width,
+                        height: rect.height
+                    });
+                }
+            }
+        </script>
+    </body>
+</html>

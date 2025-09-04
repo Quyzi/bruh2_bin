@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+    <head>
+        <title>Bruh - Home</title>
+        <link rel="stylesheet" href="css/bulma.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <script src="js/umbrella.min.js"></script>
+        <script>
+            function edit_script(script) {
+                window.location.href = "{{ protocol }}://{{ host }}/edit?script=" + script;
+            }
+
+            function delete_script(script) {
+                if (confirm('Are you sure you want to delete the script "' + script + '"?')) {
+                    window.location.href = "{{ protocol }}://{{ host }}/delete?script=" + script;
+                }
+            }
+
+            function new_script() {
+                let name = prompt("Script name:");
+                if (name != null) {
+                    window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                }
+            }
+
+            function open_sql_query() {
+                window.location.href = "{{ protocol }}://{{ host }}/sql";
+            }
+
+            function open_docs() {
+                window.location.href = "{{ protocol }}://{{ host }}/docs";
+            }
+
+            function view_revisions(script) {
+                window.location.href = "{{ protocol }}://{{ host }}/revisions?script=" + script;
+            }
+        </script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <h1>Bruh</h1>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/" class="nav-link{% if current_page == 'home' %} active{% endif %}">
+                            <i>🏠</i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/events" class="nav-link{% if current_page == 'events' %} active{% endif %}">
+                            <i>📡</i>
+                            Events
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/sql" class="nav-link{% if current_page == 'sql' %} active{% endif %}">
+                            <i>📊</i>
+                            SQL Query
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/channels" class="nav-link{% if current_page == 'channels' %} active{% endif %}">
+                            <i>📺</i>
+                            Channels
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/secrets" class="nav-link{% if current_page == 'secrets' %} active{% endif %}">
+                            <i>🔐</i>
+                            Secrets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ protocol }}://{{ host }}/docs" class="nav-link{% if current_page == 'docs' %} active{% endif %}">
+                            <i>📚</i>
+                            Documentation
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Scripts</div>
+                    <ul class="nav-menu">
+                        {% for script in scripts %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/edit?script={{ script }}" class="nav-link{% if current_page == 'edit' and script_name == script %} active{% endif %}">
+                                <i>📝</i>
+                                {{ script }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li class="nav-item">
+                            <a href="#" onclick="new_script()" class="nav-link">
+                                <i>➕</i>
+                                New Script
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Channels</div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active</span>
+                            <span class="stat-value">{{ channels|length }}</span>
+                        </div>
+                    </div>
+                    {% if channels %}
+                    <ul class="nav-menu">
+                        {% for channel in channels %}
+                        <li class="nav-item">
+                            <a href="{{ protocol }}://{{ host }}/chat?channel={{ channel.name }}" class="nav-link" title="Channel: {{ channel.name }}">
+                                <i>📺</i>
+                                {{ channel.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Database</div>
+                    <div class="quick-stats">
+                        {% set total_rows = namespace(total=0) %}
+                        {% for table in sqlite_tables %}
+                            {% set total_rows.total = total_rows.total + table.row_count %}
+                        {% endfor %}
+                        <div class="stat-item">
+                            <span class="stat-label">Tables</span>
+                            <span class="stat-value">{{ sqlite_tables|length }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Rows</span>
+                            <span class="stat-value">{{ total_rows.total }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function new_script() {
+                        let name = prompt("Script name:");
+                        if (name != null) {
+                            window.location.href = "{{ protocol }}://{{ host }}/new?script=" + name;
+                        }
+                    }
+                </script>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Database Tables Section -->
+                <section class="content-section">
+                    <div class="content-header">
+                        <h2 class="content-title">Database Tables</h2>
+                        <div class="action-buttons">
+                            <button class="button is-primary" onclick="open_sql_query()">
+                                <i>📊</i>
+                                SQL Query
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Table Name</th>
+                                    <th>Schema</th>
+                                    <th>Row Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for table in sqlite_tables %}
+                                <tr>
+                                    <td><strong>{{ table.name }}</strong></td>
+                                    <td>
+                                        {% for column in table.schema %}
+                                        <div style="margin-bottom: 4px;">
+                                            {% if column.primary_key %}
+                                            <code class="primary-key-column">
+                                                <span class="primary-key-icon">🔑</span>{{ column.name }}: {{ column.data_type }}{% if not column.nullable %} NOT NULL{% endif %}{% if column.default_value %} DEFAULT {{ column.default_value }}{% endif %}
+                                            </code>
+                                            {% else %}
+                                            <code>{{ column.name }}: {{ column.data_type }}{% if not column.nullable %} NOT NULL{% endif %}{% if column.default_value %} DEFAULT {{ column.default_value }}{% endif %}</code>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{ table.row_count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Scripts Section -->
+                <section class="content-section">
+                    <div class="content-header">
+                        <h2 class="content-title">Scripts</h2>
+                        <div class="action-buttons">
+                            <button class="button is-info" onclick="open_docs()">
+                                <i>📚</i>
+                                Documentation
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Command</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for script in scripts %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ script }}</strong>
+                                    </td>
+                                    <td>
+                                        <code>{{ activator }}{{ script }}</code>
+                                    </td>
+                                    <td width="300">
+                                        <div class="action-buttons">
+                                            <button class="button is-small" onclick="edit_script('{{ script }}')">Edit</button>
+                                            <button class="button is-info is-small" onclick="view_revisions('{{ script }}')">Revisions</button>
+                                            <button class="button is-danger is-small" onclick="delete_script('{{ script }}')">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if scripts|length == 0 %}
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: #666; padding: 2rem;">
+                                        No scripts found. Click "New Script" in the sidebar to create your first script.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </body>
+</html>

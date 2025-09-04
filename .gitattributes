@@ -1,0 +1,2 @@
+bruh2 filter=lfs diff=lfs merge=lfs -text
+bruh2.exe filter=lfs diff=lfs merge=lfs -text
